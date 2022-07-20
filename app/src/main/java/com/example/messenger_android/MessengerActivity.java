@@ -88,9 +88,8 @@ public class MessengerActivity extends AppCompatActivity{
         try {
             crypt = new Crypt();
             System.out.println("Crypt init done");
-            System.out.println("RSA public key: " + crypt.RSApublicKey);
-            System.out.println("RSA public key: " + crypt.sRSApublicKey);
-            System.out.println("Session key:    " + crypt.sessionKey);
+            System.out.println("RSA public  key: " + crypt.sRSApublicKey);
+            System.out.println("Session     key: " + crypt.getSessionKey());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -100,7 +99,7 @@ public class MessengerActivity extends AppCompatActivity{
 
         sent.setOnClickListener(v -> {
             if (!smessage.getText().toString().isEmpty()) {
-                Client client1 = null;
+                Client client1;
                 try {
                     System.out.println("Original string:  3:" + smessage.getText().toString() + "::sig::" + crypt.sigData(smessage.getText().toString()));
                     System.out.println("Encrypted string: 3:" + crypt.KUZencrypt(smessage.getText().toString() + "::sig::" + crypt.sigData(smessage.getText().toString())));
@@ -133,27 +132,27 @@ public class MessengerActivity extends AppCompatActivity{
 
     @SuppressLint("StaticFieldLeak")
     public class Client extends AsyncTask<Void, Void, String> {
-        String msg;
+        String message;
         String sendString = "";
 
         Client(String message) {
-            msg = message;
+            this.message = message;
         }
 
         @Override
         protected String doInBackground(Void... voids) {
             try {
-                if (msg.startsWith("3:")) {
+                if (message.startsWith("3:")) {
                     //msg = crypt.encrypt(msg.substring(2));
-                    Log.i(cTAG, "Encrypted string: " + msg);
-                    sendString = "3:" + crypt.KUZencrypt(msg.substring(2)) + " ";
+                    Log.i(cTAG, "Encrypted string: " + message);
+                    sendString = "3:" + crypt.KUZencrypt(message.substring(2)) + " ";
                 } else {
-                    sendString = msg;
+                    sendString = message;
                 }
 
-                String ipadd = serverIpAddress;
-                int portr = sendPort;
-                Socket clientSocket = new Socket(ipadd, portr);
+                String IP = serverIpAddress;
+                int port = sendPort;
+                Socket clientSocket = new Socket(IP, port);
                 OutputStream outToServer = clientSocket.getOutputStream();
                 PrintWriter output = new PrintWriter(outToServer);
                 output.println(sendString);
@@ -167,23 +166,19 @@ public class MessengerActivity extends AppCompatActivity{
                 e.printStackTrace();
             }
             Log.i(cTAG, "Trying to send (" + sendString.length() + "): " + sendString);
-            return msg;
+            return message;
         }
 
         @Override
         protected void onPostExecute(String result) {
             runOnUiThread(() -> sent.setEnabled(true));
-            Log.i(cTAG, "on post execution result => " + msg);
-            StringBuilder stringBuilder = new StringBuilder(result);
-            if (stringBuilder.charAt(0) == '3' && stringBuilder.charAt(1) == ':') {
-                stringBuilder.deleteCharAt(0);
-                stringBuilder.deleteCharAt(0);
-                msg = stringBuilder.toString();
+            Log.i(cTAG, "on post execution result => " + result);
 
-                String[] sArray = msg.split("::sig::");
+            if (result.startsWith("3:")) {
+                result = result.substring(2);
+                String[] sArray = result.split("::sig::");
 
                 messageArray.add(new Message(sArray[0], 0, Calendar.getInstance().getTime()));
-                //messageArray.add(new Message(sArray[0], 0, Calendar.getInstance().getTime()));
                 mMessageRecycler.setAdapter(mMessageAdapter);
                 smessage.setText("");
             }
@@ -249,74 +244,110 @@ public class MessengerActivity extends AppCompatActivity{
                     Log.i(sTAG, "Received: " + text);
                 } catch (Exception e) {
                     e.printStackTrace();
+                    return null;
                 }
-                return text;
-            }
 
-            protected void onPostExecute(String result) {
-                Log.d(sTAG, "onPostExecute: Result " + result);
-                if (result != null && result.length() > 2) {
-                    if (result.charAt(0) == '0' && result.charAt(1) == ':')
+                if (text != null && text.length() > 2) {
+                    if (text.charAt(0) == '0' && text.charAt(1) == ':')
                     {
-                        result = result.substring(2, result.length() - 1);
-                        Log.i(sTAG, "1. get RCA public key (" + result.length() + "): " + result);
+                        text = text.substring(2, text.length() - 1);
+                        Log.i(sTAG, "1. get RCA public key (" + text.length() + "): " + text);
 
                         try {
-                            crypt.sRSApublicKey = result;
+                            crypt.sRSApublicKey = text;
                             Log.i(sTAG, "New RSA public key: " + crypt.sRSApublicKey);
-                            Log.i(sTAG, "Session key: " + crypt.sessionKey);
-                            Log.i(sTAG, "Encrypted session key: " + crypt.encryptByPublicRSA(crypt.sRSApublicKey, crypt.sessionKey));
-                            Client cl = new Client("1:" + crypt.encryptByPublicRSA(crypt.sRSApublicKey, crypt.sessionKey));
-                            cl.execute();
+                            Log.i(sTAG, "Session key: " + crypt.getSessionKey());
+                            Log.i(sTAG, "Encrypted session key: " + crypt.RSAencryptWithPublic(crypt.sRSApublicKey, crypt.getSessionKey()));
+                            //Client cl = new Client("1:" + crypt.encryptByPublicRSA(crypt.sRSApublicKey, crypt.sessionKey));
+                            //cl.execute();
+
+                            return String.format("1:%s", crypt.RSAencryptWithPublic(crypt.sRSApublicKey, crypt.getSessionKey()));
 
                         } catch (Exception e) {
                             e.printStackTrace();
+                            return null;
                         }
                     }
-                    if (result.charAt(0) == '1' && result.charAt(1) == ':')
+                    if (text.charAt(0) == '1' && text.charAt(1) == ':')
                     {
-                        Log.i(sTAG, "2. get encrypted session key (" + result.length() + "): " + result);
-                        System.out.println("Encrypted session key: " + result);
-                        StringBuilder stringBuilder = new StringBuilder(result);
-                        stringBuilder.deleteCharAt(result.length() - 1);
+                        Log.i(sTAG, "2. get encrypted session key (" + text.length() + "): " + text);
+                        System.out.println("Encrypted session key: " + text);
+                        StringBuilder stringBuilder = new StringBuilder(text);
+                        stringBuilder.deleteCharAt(text.length() - 1);
                         stringBuilder.deleteCharAt(0);
                         stringBuilder.deleteCharAt(0);
-                        result = stringBuilder.toString();
+                        text = stringBuilder.toString();
                         try {
-                            crypt.setSessionKey(result);
-                            System.out.println("New session key: " + crypt.sessionKey);
+                            crypt.setSessionKey(text);
+                            System.out.println("New session key: " + crypt.getSessionKey());
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
-                        Client cl = new Client("2: Done");
-                        cl.execute();
+                        //Client cl = new Client("2: Done");
+                        //cl.execute();
+                        return "2: Done";
                     }
-                    if (result.charAt(0) == '2' && result.charAt(1) == ':')
+                    if (text.charAt(0) == '2' && text.charAt(1) == ':')
                     {
                         if (!isSession) {
                             isSession = true;
                             Log.i(sTAG, "3. Session established");
-                            getSupportActionBar().setTitle("Connected to " + serverIP + ":" + sendPort);
 
-                            Client cl = new Client("2: Done");
-                            cl.execute();
+                            //Client cl = new Client("2: Done");
+                            //cl.execute();
+                            return "2: Done";
                         }
                     }
-                    if (result.charAt(0) == '3' && result.charAt(1) == ':') {
+                    if (text.charAt(0) == '3' && text.charAt(1) == ':') {
 
-                        Log.i(sTAG, "3. get message (" + result.length() + "): " + result);
+                        Log.i(sTAG, "3. get message (" + text.length() + "): " + text);
 
-                        StringBuilder stringBuilder = new StringBuilder(result);
-                        result = stringBuilder.substring(2, result.length() - 2);
+                        StringBuilder stringBuilder = new StringBuilder(text);
+                        text = stringBuilder.substring(2, text.length() - 2);
                         try {
-                            Log.i(sTAG, "Try decr: " + result);
-                            Log.i(sTAG, "Session key: " + crypt.sessionKey);
-                            result = crypt.KUZdecrypt(result);
+                            Log.i(sTAG, "Try decr: " + text);
+                            Log.i(sTAG, "Session key: " + crypt.getSessionKey());
+                            text = crypt.KUZdecrypt(text);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
 
-                        String[] sArray = result.split("::sig::");
+                        return "3:" + text;
+
+                        //String[] sArray = text.split("::sig::");
+                        //if (!crypt.checkSig(sArray[0], sArray[1])) {
+                        //    getSupportActionBar().setTitle("Wrong signature received!");
+                        //    Toast.makeText(getApplicationContext(), "Wrong signature received!", Toast.LENGTH_LONG).show();
+                        //}
+                        //messageArray.add(new Message(sArray[0], 1, Calendar.getInstance().getTime()));
+                        //messageList.setAdapter(mAdapter);
+                    }
+                }
+                else {System.out.println("Get null string");}
+                return null;
+            }
+
+            protected void onPostExecute(String text) {
+                Log.d(sTAG, "onPostExecute: Result " + text);
+                Client cl;
+
+                if (text != null) {
+                    if (text.charAt(0) == '0' && text.charAt(1) == ':') {
+                        cl = new Client(text);
+                        cl.execute();
+                    }
+                    if (text.charAt(0) == '1' && text.charAt(1) == ':') {
+                        cl = new Client(text);
+                        cl.execute();
+                    }
+                    if (text.charAt(0) == '2' && text.charAt(1) == ':') {
+                        getSupportActionBar().setTitle("Connected to " + serverIP + ":" + sendPort);
+                        cl = new Client(text);
+                        cl.execute();
+                    }
+                    if (text.charAt(0) == '3' && text.charAt(1) == ':') {
+                        text = text.substring(2);
+                        String[] sArray = text.split("::sig::");
 
                         if (!crypt.checkSig(sArray[0], sArray[1])) {
                             getSupportActionBar().setTitle("Wrong signature received!");
@@ -326,9 +357,6 @@ public class MessengerActivity extends AppCompatActivity{
                         messageArray.add(new Message(sArray[0], 1, Calendar.getInstance().getTime()));
                         messageList.setAdapter(mAdapter);
                     }
-                }
-                else {
-                    System.out.println("Get null string");
                 }
             }
         }

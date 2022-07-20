@@ -74,10 +74,14 @@ public class ChatAdapterRecycler extends RecyclerView.Adapter {
         Message message = arrayList.get(position);
         switch (holder.getItemViewType()) {
             case VIEW_TYPE_MESSAGE_SENT:
-            case LATEST_TYPE_MESSAGE_SENT:
                 ((SentMessageHolder) holder).bind(message);
                 break;
             case VIEW_TYPE_MESSAGE_RECEIVED:
+                ((ReceivedMessageHolder) holder).bind(message);
+                break;
+            case LATEST_TYPE_MESSAGE_SENT:
+                ((SentMessageHolder) holder).bind(message);
+                break;
             case LATEST_TYPE_MESSAGE_RECEIVED:
                 ((ReceivedMessageHolder) holder).bind(message);
                 break;

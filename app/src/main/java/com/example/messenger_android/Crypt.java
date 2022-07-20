@@ -22,8 +22,6 @@ import org.bouncycastle.util.Store;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyFactory;
 import java.security.KeyPair;
@@ -45,23 +43,21 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 public class Crypt {
-    String TAG = "CRYPT";
+    static String TAG = "CRYPT";
 
-    public Key RSApublicKey = null;
     private Key RSAprivateKey = null;
-
     public String sRSApublicKey = "";
 
-    public String sessionKey = "";
-    public String encodeSessionkey = "";
+    private String sessionKey = "";
+    private String encryptSessionKey = "";
+    byte[] keyiv = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
 
     public X509Certificate myCert;
     public PrivateKey certPrivate;
@@ -73,7 +69,9 @@ public class Crypt {
     /*============================================================================================*/
     /*  Constructor and helper functions */
     Crypt () {
+        // remove default BC
         Security.removeProvider("BC");
+        // add new from dependencies
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 
         RSAgenerateKey();
@@ -81,7 +79,8 @@ public class Crypt {
         generateGOST3410certificate();
     }
 
-    private void getCiphList() {
+    // list available ciphers
+    private void getCiphersList() {
         for (Provider provider: Security.getProviders()) {
             Log.i(TAG, provider.getName());
             for (Provider.Service s: provider.getServices()){
@@ -91,7 +90,7 @@ public class Crypt {
         }
     }
 
-    public static byte[] decryptBASE64(String key){return Base64.decode(key, Base64.DEFAULT);}
+    public static byte[] decodeBASE64(String key){return Base64.decode(key, Base64.DEFAULT);}
 
     public static byte[] encodeUTF16(String string) {return string.getBytes(StandardCharsets.UTF_16);}
 
@@ -107,52 +106,60 @@ public class Crypt {
         return Arrays.copyOfRange(tmpBytes, 1, tmpBytes.length);
     }
 
-    public void setSessionKey (String newEncKey) throws Exception {
-        encodeSessionkey = newEncKey;
+    public void setSessionKey (String newEncKey){
+        encryptSessionKey = newEncKey;
         decryptSessionKey();
     }
 
     public String getSessionKey () {return sessionKey;}
 
-    public void decryptSessionKey () throws Exception {
-        sessionKey = decryptByPrivateRSA(encodeSessionkey);
+    public void decryptSessionKey (){
+        sessionKey = RSAdecryptWithPrivate(encryptSessionKey);
     }
 
     /*============================================================================================*/
     /*  RSA  */
+
+    // generate RSA keypair with keysize = 1024
     public void RSAgenerateKey() {
         try {
             KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
             kpg.initialize(1024);
             KeyPair kp = kpg.genKeyPair();
-            RSApublicKey = kp.getPublic();
             RSAprivateKey = kp.getPrivate();
+            sRSApublicKey = new String(Base64.encode(kp.getPublic().getEncoded(), 0));
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
-
-        sRSApublicKey = new String(Base64.encode(RSApublicKey.getEncoded(), 0));
     }
 
-    public static String encryptByPublicRSA(String key, String data) throws Exception {
-        // Необходимо использовать правильную кодировку
-        byte[] keyBytes = decryptBASE64(key);
-        X509EncodedKeySpec x509KeySpec = new X509EncodedKeySpec(keyBytes);
-        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        Key publicKey = keyFactory.generatePublic(x509KeySpec);
-        // Encode the original data with RSA public key
-        byte[] encodedBytes = null;
+    // client might receive public key from another client
+    // better generate new public Key class, rather than convert
+    public String RSAencryptWithPublic(String key, String data) {
+        byte[] keyBytes = decodeBASE64(key);
+        byte[] encodedBytes;
+
         try {
+            X509EncodedKeySpec x509KeySpec = new X509EncodedKeySpec(keyBytes);
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            Key RSApublicKey = keyFactory.generatePublic(x509KeySpec);
+
             Cipher c = Cipher.getInstance("RSA");
-            c.init(Cipher.ENCRYPT_MODE, publicKey);
+            c.init(Cipher.ENCRYPT_MODE, RSApublicKey);
             encodedBytes = c.doFinal(data.getBytes());
+
+            // check
+            Log.i(TAG, "Str  arg  key: " + key);
+            Log.i(TAG, "Generated key: " + new String(Base64.encode(RSApublicKey.getEncoded(), 0)));
+
+            return java.util.Base64.getEncoder().encodeToString(encodedBytes);
         } catch (Exception e) {
             e.printStackTrace();
+            return null;
         }
-        return java.util.Base64.getEncoder().encodeToString(encodedBytes);
     }
 
-    public String decryptByPrivateRSA(String encrypted){
+    public String RSAdecryptWithPrivate(String encrypted){
         byte[] encrypted_bytes = java.util.Base64.getDecoder().decode(encrypted);
         byte[] decodedBytes = null;
         try {
@@ -167,14 +174,13 @@ public class Crypt {
 
     /*============================================================================================*/
     /* GOST 34.12 */
-    byte[] keyiv = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
+    // init parameters and generate keys for GOST 34.12
+    // keysize = 256, rand initialization vector[16], CBC mode, PKCS7Padding
     public void KUZgenerateKey() {
-        // Set up secret key spec for 128-bit AES encryption and decryption
-        SecretKeySpec sks = null;
         try {
-            SecureRandom sr = SecureRandom.getInstance("SHA1PRNG");
-            sr.setSeed("random seed".getBytes());
+            SecretKeySpec sks;
+            SecureRandom sr = new SecureRandom();
             KeyGenerator kg = KeyGenerator.getInstance("GOST3412-2015");
             kg.init(256, sr);
             sks = new SecretKeySpec((kg.generateKey()).getEncoded(), "GOST3412-2015");
@@ -186,46 +192,52 @@ public class Crypt {
         }
     }
 
-    public String KUZencrypt(String data) throws Exception {
-        byte[] key = decryptBASE64(sessionKey);
-
-        // Экземпляр секретного ключа SecretKeySpec создается для алгоритма "AES"
-        SecretKeySpec skeySpec = new SecretKeySpec(key, "GOST3412-2015"); //new SecretKeySpec(digestOfPassword, "GOST3412-2015");
-        Cipher cipher = Cipher.getInstance("GOST3412-2015/CBC/PKCS7Padding");
-        IvParameterSpec ips = new IvParameterSpec(keyiv);
+    public String KUZencrypt(String data) {
+        byte[] key = decodeBASE64(sessionKey);
 
         try {
-            cipher.init(Cipher.ENCRYPT_MODE, skeySpec, ips); // Инициализация Cipher выполняется вызовом его метода init
-        } catch (InvalidKeyException | InvalidAlgorithmParameterException e) {
-            e.printStackTrace();
-        }
+            SecretKeySpec skeySpec = new SecretKeySpec(key, "GOST3412-2015");
+            Cipher cipher = Cipher.getInstance("GOST3412-2015/CBC/PKCS7Padding");
+            IvParameterSpec ips = new IvParameterSpec(keyiv);
+            cipher.init(Cipher.ENCRYPT_MODE, skeySpec, ips);
 
-        byte[] encrypted = new byte[0]; // Для шифрования и дешифрования данных с помощью экземпляра Cipher, используется один из методов update() или doFinal().
-        try {
+            byte[] encrypted;
             encrypted = cipher.doFinal(encodeUTF16(data));
-        } catch (BadPaddingException | IllegalBlockSizeException e) {
+            return bytesToString(encrypted);
+        } catch (Exception e) {
             e.printStackTrace();
+            return null;
         }
-        return bytesToString(encrypted);
     }
 
-    public String KUZdecrypt(String data) throws Exception
+    public String KUZdecrypt(String data)
     {
-        SecretKeySpec skeySpec = new SecretKeySpec(decryptBASE64(sessionKey), "GOST3412-2015"); //new SecretKeySpec(digestOfPassword, "GOST3412-2015");
-        Cipher cipher = Cipher.getInstance("GOST3412-2015/CBC/PKCS7Padding");
-        IvParameterSpec ips = new IvParameterSpec(keyiv);
-        cipher.init(Cipher.DECRYPT_MODE, skeySpec, ips);
-        byte[] decrypted = cipher.doFinal(stringToBytes(data));
-        return new String(decrypted, StandardCharsets.UTF_16);
+        try {
+            SecretKeySpec skeySpec = new SecretKeySpec(decodeBASE64(sessionKey), "GOST3412-2015"); //new SecretKeySpec(digestOfPassword, "GOST3412-2015");
+            Cipher cipher = Cipher.getInstance("GOST3412-2015/CBC/PKCS7Padding");
+            IvParameterSpec ips = new IvParameterSpec(keyiv);
+            cipher.init(Cipher.DECRYPT_MODE, skeySpec, ips);
+            byte[] decrypted = cipher.doFinal(stringToBytes(data));
+            return new String(decrypted, StandardCharsets.UTF_16);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     /*============================================================================================*/
     /* GOST 34.10 */
+
+    // try generate self signed certificate with GOST 34.10-2012 signature
+    // key size = 512 (GOST3411WITHGOST3410-2012-512)
+    // OID:
     public void generateGOST3410certificate(){
         try {
             Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 
             KeyPairGenerator keygen = KeyPairGenerator.getInstance("ECGOST3410-2012", "BC");
+            // OID: 1.2.643.7.1.2.1.2.1, Tc26-Gost-3410-12-512-paramSetA
+            // рабочие параметры алгоритма подписи ГОСТ Р 34.10-2012 с ключом 512
             keygen.initialize(new ECGenParameterSpec("Tc26-Gost-3410-12-512-paramSetA"));
 
             KeyPair keyPair = keygen.generateKeyPair();
@@ -235,7 +247,6 @@ public class Crypt {
             BigInteger serial = BigInteger.ONE; // serial number for self-signed does not matter a lot
             Date notBefore = new Date();
             Date notAfter = new Date(notBefore.getTime() + TimeUnit.DAYS.toMillis(365));
-
 
             X500NameBuilder builder = new X500NameBuilder(RFC4519Style.INSTANCE);
             builder.addRDN(RFC4519Style.c, "RU");
@@ -250,8 +261,13 @@ public class Crypt {
                     subject, keyPair.getPublic()
             );
 
+            // OID:  1.2.643.7.1.1.3.3, id-tc26-signwithdigest-gost3410-12-512
+            // алгоритм подписи ГОСТ Р 34.10-2012 с ключом 512 с хэшированием ГОСТ Р 34.11-2012
+
+            // OID: 1.2.643.7.1.1.1.2, id-tc26-gost3410-12-512
+            // алгоритм подписи ГОСТ Р 34.10-2012 с ключом 512
             org.bouncycastle.cert.X509CertificateHolder certificateHolder = certificateBuilder.build(
-                    new org.bouncycastle.operator.jcajce.JcaContentSignerBuilder("GOST3411WITHGOST3410-2012-512")
+                    new org.bouncycastle.operator.jcajce.JcaContentSignerBuilder("GOST3411WITHGOST3410-2012-512") //GOST-3410-2012-512
                             .build(keyPair.getPrivate())
             );
             org.bouncycastle.cert.jcajce.JcaX509CertificateConverter certificateConverter = new org.bouncycastle.cert.jcajce.JcaX509CertificateConverter();
@@ -274,13 +290,11 @@ public class Crypt {
             System.out.println("\n" + cert.toString());
             System.out.println(privateKey.toString());
             System.out.println(publicKey.toString());
-
              */
 
             myCert = cert;
             certPrivate = privateKey;
             certPublic = publicKey;
-
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -288,7 +302,7 @@ public class Crypt {
 
     public String sigData (String sData){
         byte[] data = encodeUTF16(sData);
-        CMSProcessableByteArray msg = new CMSProcessableByteArray(data);
+        CMSProcessableByteArray message = new CMSProcessableByteArray(data);
 
         List certList = new ArrayList();
         certList.add(myCert);
@@ -300,7 +314,7 @@ public class Crypt {
 
             gen.addSignerInfoGenerator(new JcaSignerInfoGeneratorBuilder(new JcaDigestCalculatorProviderBuilder().setProvider("BC").build()).build(signer, myCert));
             gen.addCertificates(certs);
-            CMSSignedData sigData = gen.generate(msg, false);
+            CMSSignedData sigData = gen.generate(message, false);
 
             return bytesToString(sigData.getEncoded());
         } catch (Exception e) {

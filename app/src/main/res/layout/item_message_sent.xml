@@ -46,4 +46,5 @@
         android:textSize="11sp"
         app:layout_constraintEnd_toStartOf="@+id/sendCard"
         app:layout_constraintTop_toTopOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
