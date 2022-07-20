@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Messenger_Android</string>
+    <string name="dummy_ip">0.0.0.0</string>
+    <string name="your_ip">Your IP</string>
+    <string name="status">Status</string>
+    <string name="enter_message">Enter message</string>
+</resources>
