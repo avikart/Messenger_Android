@@ -28,10 +28,10 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         myPort = findViewById(R.id.myPortEditText);
-        ip = findViewById(R.id.ipEditText);
-        port = findViewById(R.id.portEditText);
+        ip = findViewById(R.id.uIPEditText);
+        port = findViewById(R.id.uPortEditText);
         connectButton = findViewById(R.id.connectButton);
-        showIPtextId = findViewById(R.id.showIPtextId);
+        showIPtextId = findViewById(R.id.yourIP);
 
         WifiManager wm = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
         showIPaddress = Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());

@@ -53,8 +53,8 @@ public class MessengerActivity extends AppCompatActivity{
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chatbox);
 
-        smessage = findViewById(R.id.edittext_chatbox);
-        sent = findViewById(R.id.button_chatbox_send);
+        smessage = findViewById(R.id.editTextChatbox);
+        sent = findViewById(R.id.sendButton);
 
         messageArray = new ArrayList<>();
         mMessageRecycler = findViewById(R.id.message_list);
@@ -90,7 +90,7 @@ public class MessengerActivity extends AppCompatActivity{
             System.out.println("Crypt init done");
             System.out.println("RSA public key: " + crypt.RSApublicKey);
             System.out.println("RSA public key: " + crypt.sRSApublicKey);
-            System.out.println("Session key:    " + crypt.getSessionKey());
+            System.out.println("Session key:    " + crypt.sessionKey);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -183,6 +183,7 @@ public class MessengerActivity extends AppCompatActivity{
                 String[] sArray = msg.split("::sig::");
 
                 messageArray.add(new Message(sArray[0], 0, Calendar.getInstance().getTime()));
+                //messageArray.add(new Message(sArray[0], 0, Calendar.getInstance().getTime()));
                 mMessageRecycler.setAdapter(mMessageAdapter);
                 smessage.setText("");
             }
@@ -263,9 +264,9 @@ public class MessengerActivity extends AppCompatActivity{
                         try {
                             crypt.sRSApublicKey = result;
                             Log.i(sTAG, "New RSA public key: " + crypt.sRSApublicKey);
-                            Log.i(sTAG, "Session key: " + crypt.getSessionKey());
-                            Log.i(sTAG, "Encrypted session key: " + crypt.encryptByPublicRSA(crypt.sRSApublicKey, crypt.getSessionKey()));
-                            Client cl = new Client("1:" + crypt.encryptByPublicRSA(crypt.sRSApublicKey, crypt.getSessionKey()));
+                            Log.i(sTAG, "Session key: " + crypt.sessionKey);
+                            Log.i(sTAG, "Encrypted session key: " + crypt.encryptByPublicRSA(crypt.sRSApublicKey, crypt.sessionKey));
+                            Client cl = new Client("1:" + crypt.encryptByPublicRSA(crypt.sRSApublicKey, crypt.sessionKey));
                             cl.execute();
 
                         } catch (Exception e) {
@@ -277,13 +278,13 @@ public class MessengerActivity extends AppCompatActivity{
                         Log.i(sTAG, "2. get encrypted session key (" + result.length() + "): " + result);
                         System.out.println("Encrypted session key: " + result);
                         StringBuilder stringBuilder = new StringBuilder(result);
-                        stringBuilder.deleteCharAt(text.length() - 1);
+                        stringBuilder.deleteCharAt(result.length() - 1);
                         stringBuilder.deleteCharAt(0);
                         stringBuilder.deleteCharAt(0);
                         result = stringBuilder.toString();
                         try {
                             crypt.setSessionKey(result);
-                            System.out.println("New session key: " + crypt.getSessionKey());
+                            System.out.println("New session key: " + crypt.sessionKey);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -309,6 +310,7 @@ public class MessengerActivity extends AppCompatActivity{
                         result = stringBuilder.substring(2, result.length() - 2);
                         try {
                             Log.i(sTAG, "Try decr: " + result);
+                            Log.i(sTAG, "Session key: " + crypt.sessionKey);
                             result = crypt.KUZdecrypt(result);
                         } catch (Exception e) {
                             e.printStackTrace();

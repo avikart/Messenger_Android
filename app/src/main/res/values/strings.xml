@@ -4,4 +4,12 @@
     <string name="your_ip">Your IP</string>
     <string name="status">Status</string>
     <string name="enter_message">Enter message</string>
+    <string name="hi_str">hi from the other side!</string>
+    <string name="time_r">18:10</string>
+    <string name="sHello">hello!</string>
+    <string name="myPort">Your port number</string>
+    <string name="partner_s_ip_address">Partner\'s IP address</string>
+    <string name="partner_s_port_number">Partner\'s port number</string>
+    <string name="connect">Connect</string>
+    <string name="send">Send</string>
 </resources>

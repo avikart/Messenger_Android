@@ -24,7 +24,7 @@
         app:layout_constraintTop_toTopOf="parent">
 
         <TextView
-            android:id="@+id/tvIp"
+            android:id="@+id/yourIPText"
             android:layout_width="79dp"
             android:layout_height="22dp"
             android:layout_marginTop="4dp"
@@ -35,10 +35,11 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.5"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent"
+            tools:ignore="RtlSymmetry" />
 
         <TextView
-            android:id="@+id/showIPtextId"
+            android:id="@+id/yourIP"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingTop="10dp"
@@ -47,17 +48,17 @@
             android:textAlignment="center"
             android:textColor="@color/black"
             android:textSize="16sp"
-            app:layout_constraintBottom_toTopOf="@id/textinpOwnIP"
-            app:layout_constraintTop_toTopOf="@id/tvIp" />
+            app:layout_constraintBottom_toTopOf="@id/myPortTextTip"
+            app:layout_constraintTop_toTopOf="@id/yourIPText" />
 
         <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/textinpOwnIP"
+            android:id="@+id/myPortTextTip"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Your port number"
+            android:hint="@string/myPort"
             android:textColorHint="@color/teal_200"
-            app:layout_constraintBottom_toTopOf="@id/textinpOwnPort"
-            app:layout_constraintTop_toBottomOf="@id/showIPtextId">
+            app:layout_constraintBottom_toTopOf="@id/uIPTip"
+            app:layout_constraintTop_toBottomOf="@id/yourIP">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/myPortEditText"
@@ -68,20 +69,21 @@
                 android:layout_marginBottom="20dp"
                 android:layout_weight="1"
                 android:inputType="number"
-                android:textAlignment="center" />
+                android:textAlignment="center"
+                android:textColorHint="#616161" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/textinpOwnPort"
+            android:id="@+id/uIPTip"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Partner's IP address"
+            android:hint="@string/partner_s_ip_address"
             android:textColorHint="@color/teal_200"
-            app:layout_constraintBottom_toTopOf="@id/textinpIp"
-            app:layout_constraintTop_toBottomOf="@id/textinpOwnIP">
+            app:layout_constraintBottom_toTopOf="@id/uPortTextTip"
+            app:layout_constraintTop_toBottomOf="@id/myPortTextTip">
 
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/ipEditText"
+                android:id="@+id/uIPEditText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_margin="8dp"
@@ -90,20 +92,21 @@
                 android:layout_weight="1"
                 android:digits="0123456789."
                 android:inputType="number"
-                android:textAlignment="center" />
+                android:textAlignment="center"
+                android:textColorHint="#616161" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/textinpIp"
+            android:id="@+id/uPortTextTip"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Partner's port number"
+            android:hint="@string/partner_s_port_number"
             android:textColorHint="@color/teal_200"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/textinpOwnPort">
+            app:layout_constraintTop_toBottomOf="@id/uIPTip">
 
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/portEditText"
+                android:id="@+id/uPortEditText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_margin="8dp"
@@ -111,7 +114,8 @@
                 android:layout_marginBottom="20dp"
                 android:layout_weight="1"
                 android:inputType="number"
-                android:textAlignment="center" />
+                android:textAlignment="center"
+                android:textColorHint="#00695C" />
         </com.google.android.material.textfield.TextInputLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -125,12 +129,11 @@
         android:layout_marginEnd="41dp"
         android:layout_marginBottom="64dp"
         android:layout_weight="1"
-        android:text="Connect"
+        android:text="@string/connect"
         android:textAlignment="center"
         android:textColor="@color/black"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/Main" />
-
 </androidx.constraintlayout.widget.ConstraintLayout>

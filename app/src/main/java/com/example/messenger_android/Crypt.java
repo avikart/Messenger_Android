@@ -60,7 +60,7 @@ public class Crypt {
 
     public String sRSApublicKey = "";
 
-    private String sessionKey = "";
+    public String sessionKey = "";
     public String encodeSessionkey = "";
 
     public X509Certificate myCert;
@@ -167,6 +167,8 @@ public class Crypt {
 
     /*============================================================================================*/
     /* GOST 34.12 */
+    byte[] keyiv = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
     public void KUZgenerateKey() {
         // Set up secret key spec for 128-bit AES encryption and decryption
         SecretKeySpec sks = null;
@@ -185,7 +187,6 @@ public class Crypt {
     }
 
     public String KUZencrypt(String data) throws Exception {
-        byte[] keyiv = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
         byte[] key = decryptBASE64(sessionKey);
 
         // Экземпляр секретного ключа SecretKeySpec создается для алгоритма "AES"
@@ -210,8 +211,6 @@ public class Crypt {
 
     public String KUZdecrypt(String data) throws Exception
     {
-        byte[] keyiv = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
         SecretKeySpec skeySpec = new SecretKeySpec(decryptBASE64(sessionKey), "GOST3412-2015"); //new SecretKeySpec(digestOfPassword, "GOST3412-2015");
         Cipher cipher = Cipher.getInstance("GOST3412-2015/CBC/PKCS7Padding");
         IvParameterSpec ips = new IvParameterSpec(keyiv);
@@ -261,6 +260,7 @@ public class Crypt {
             PrivateKey privateKey = keyPair.getPrivate();
             PublicKey publicKey = keyPair.getPublic();
 
+            /*
             System.out.println(privateKey.toString());
             System.out.println(publicKey.toString());
 
@@ -274,6 +274,8 @@ public class Crypt {
             System.out.println("\n" + cert.toString());
             System.out.println(privateKey.toString());
             System.out.println(publicKey.toString());
+
+             */
 
             myCert = cert;
             certPrivate = privateKey;

@@ -94,8 +94,8 @@ public class ChatAdapterRecycler extends RecyclerView.Adapter {
 
         ReceivedMessageHolder(View itemView) {
             super(itemView);
-            messageText = itemView.findViewById(R.id.text_message_body);
-            timeText = itemView.findViewById(R.id.text_message_time);
+            messageText = itemView.findViewById(R.id.receivedText);
+            timeText = itemView.findViewById(R.id.textTime);
         }
 
 
@@ -114,8 +114,8 @@ public class ChatAdapterRecycler extends RecyclerView.Adapter {
 
         SentMessageHolder(View itemView) {
             super(itemView);
-            messageText = itemView.findViewById(R.id.send_message_body);
-            timeText = itemView.findViewById(R.id.text_message_time);
+            messageText = itemView.findViewById(R.id.sendText);
+            timeText = itemView.findViewById(R.id.textTime);
         }
 
         void bind(Message message) {
