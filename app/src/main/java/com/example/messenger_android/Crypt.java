@@ -213,7 +213,7 @@ public class Crypt {
     public String KUZdecrypt(String data)
     {
         try {
-            SecretKeySpec skeySpec = new SecretKeySpec(decodeBASE64(sessionKey), "GOST3412-2015"); //new SecretKeySpec(digestOfPassword, "GOST3412-2015");
+            SecretKeySpec skeySpec = new SecretKeySpec(decodeBASE64(sessionKey), "GOST3412-2015");
             Cipher cipher = Cipher.getInstance("GOST3412-2015/CBC/PKCS7Padding");
             IvParameterSpec ips = new IvParameterSpec(keyiv);
             cipher.init(Cipher.DECRYPT_MODE, skeySpec, ips);
