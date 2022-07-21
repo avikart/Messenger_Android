@@ -120,6 +120,9 @@ public class MessengerActivity extends AppCompatActivity{
     @Override
     public void onBackPressed() {
         if (exit) {
+            isSession = false;
+            Client client = new Client("4:Bye!");
+            client.execute();
             s.interrupt();
             finish();
         } else {
@@ -227,7 +230,7 @@ public class MessengerActivity extends AppCompatActivity{
             @Override
             protected String doInBackground(Socket... sockets) {
                 try {
-                    byte[] content = new byte[1024];
+                    byte[] content = new byte[2048];
 
                     InputStream inputStream = sockets[0].getInputStream();
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -241,6 +244,7 @@ public class MessengerActivity extends AppCompatActivity{
                     text = baos.toString();
                     inputStream.close();
                     baos.flush();
+                    baos.close();
                     Log.i(sTAG, "Received: " + text);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -258,8 +262,6 @@ public class MessengerActivity extends AppCompatActivity{
                             Log.i(sTAG, "New RSA public key: " + crypt.sRSApublicKey);
                             Log.i(sTAG, "Session key: " + crypt.getSessionKey());
                             Log.i(sTAG, "Encrypted session key: " + crypt.RSAencryptWithPublic(crypt.sRSApublicKey, crypt.getSessionKey()));
-                            //Client cl = new Client("1:" + crypt.encryptByPublicRSA(crypt.sRSApublicKey, crypt.sessionKey));
-                            //cl.execute();
 
                             return String.format("1:%s", crypt.RSAencryptWithPublic(crypt.sRSApublicKey, crypt.getSessionKey()));
 
@@ -280,8 +282,6 @@ public class MessengerActivity extends AppCompatActivity{
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
-                        //Client cl = new Client("2: Done");
-                        //cl.execute();
                         return "2: Done";
                     }
                     if (text.startsWith("2:"))
@@ -289,15 +289,11 @@ public class MessengerActivity extends AppCompatActivity{
                         if (!isSession) {
                             isSession = true;
                             Log.i(sTAG, "3. Session established");
-
-                            //Client cl = new Client("2: Done");
-                            //cl.execute();
                             return "2: Done";
                         }
                     }
-                    if (text.startsWith("3:")) {
-
-                        Log.i(sTAG, "3. get message (" + text.length() + "): " + text);
+                    if (text.startsWith("3:") && isSession) {
+                        Log.i(sTAG, "4. get message (" + text.length() + "): " + text);
 
                         StringBuilder stringBuilder = new StringBuilder(text);
                         text = stringBuilder.substring(2, text.length() - 2);
@@ -308,16 +304,12 @@ public class MessengerActivity extends AppCompatActivity{
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
-
                         return "3:" + text;
-
-                        //String[] sArray = text.split("::sig::");
-                        //if (!crypt.checkSig(sArray[0], sArray[1])) {
-                        //    getSupportActionBar().setTitle("Wrong signature received!");
-                        //    Toast.makeText(getApplicationContext(), "Wrong signature received!", Toast.LENGTH_LONG).show();
-                        //}
-                        //messageArray.add(new Message(sArray[0], 1, Calendar.getInstance().getTime()));
-                        //messageList.setAdapter(mAdapter);
+                    }
+                    if (text.startsWith("4:") && isSession) {
+                        isSession = false;
+                        Log.i(sTAG, "5. Session ended");
+                        return text;
                     }
                 }
                 else {System.out.println("Get null string");}
@@ -333,11 +325,7 @@ public class MessengerActivity extends AppCompatActivity{
                         cl = new Client(text);
                         cl.execute();
                     }
-                    if (text.startsWith("1:")) {
-                        cl = new Client(text);
-                        cl.execute();
-                    }
-                    if (text.startsWith("2:")) {
+                    if (text.startsWith("1:") || text.startsWith("2:")) {
                         getSupportActionBar().setTitle("Connected to " + serverIP + ":" + sendPort);
                         cl = new Client(text);
                         cl.execute();
@@ -353,6 +341,11 @@ public class MessengerActivity extends AppCompatActivity{
 
                         messageArray.add(new Message(sArray[0], 1, Calendar.getInstance().getTime()));
                         messageList.setAdapter(mAdapter);
+                    }
+                    if (text.startsWith("4:")) {
+                        s.interrupt();
+                        Toast.makeText(getApplicationContext(), "Client closed the connection", Toast.LENGTH_LONG).show();
+                        finish();
                     }
                 }
             }
