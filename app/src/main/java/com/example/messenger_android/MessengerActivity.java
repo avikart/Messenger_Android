@@ -78,7 +78,7 @@ public class MessengerActivity extends AppCompatActivity{
         WifiManager wm = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
         ownIp = Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
 
-        getSupportActionBar().setTitle("Connecting to " + serverIpAddress + ":" + sendPort);
+        getSupportActionBar().setTitle("Connecting to " + serverIpAddress + ":" + sendPort + " ...");
 
         if (!serverIpAddress.equals("")) {
             s = new Server(mMessageAdapter, mMessageRecycler, messageArray, myport, serverIpAddress);
@@ -248,7 +248,7 @@ public class MessengerActivity extends AppCompatActivity{
                 }
 
                 if (text != null && text.length() > 2) {
-                    if (text.charAt(0) == '0' && text.charAt(1) == ':')
+                    if (text.startsWith("0:"))
                     {
                         text = text.substring(2, text.length() - 1);
                         Log.i(sTAG, "1. get RCA public key (" + text.length() + "): " + text);
@@ -268,15 +268,12 @@ public class MessengerActivity extends AppCompatActivity{
                             return null;
                         }
                     }
-                    if (text.charAt(0) == '1' && text.charAt(1) == ':')
+                    if (text.startsWith("1:"))
                     {
                         Log.i(sTAG, "2. get encrypted session key (" + text.length() + "): " + text);
                         System.out.println("Encrypted session key: " + text);
-                        StringBuilder stringBuilder = new StringBuilder(text);
-                        stringBuilder.deleteCharAt(text.length() - 1);
-                        stringBuilder.deleteCharAt(0);
-                        stringBuilder.deleteCharAt(0);
-                        text = stringBuilder.toString();
+                        text = text.substring(2, text.length() - 1);
+
                         try {
                             crypt.setSessionKey(text);
                             System.out.println("New session key: " + crypt.getSessionKey());
@@ -287,7 +284,7 @@ public class MessengerActivity extends AppCompatActivity{
                         //cl.execute();
                         return "2: Done";
                     }
-                    if (text.charAt(0) == '2' && text.charAt(1) == ':')
+                    if (text.startsWith("2:"))
                     {
                         if (!isSession) {
                             isSession = true;
@@ -298,7 +295,7 @@ public class MessengerActivity extends AppCompatActivity{
                             return "2: Done";
                         }
                     }
-                    if (text.charAt(0) == '3' && text.charAt(1) == ':') {
+                    if (text.startsWith("3:")) {
 
                         Log.i(sTAG, "3. get message (" + text.length() + "): " + text);
 
@@ -332,20 +329,20 @@ public class MessengerActivity extends AppCompatActivity{
                 Client cl;
 
                 if (text != null) {
-                    if (text.charAt(0) == '0' && text.charAt(1) == ':') {
+                    if (text.startsWith("0:")) {
                         cl = new Client(text);
                         cl.execute();
                     }
-                    if (text.charAt(0) == '1' && text.charAt(1) == ':') {
+                    if (text.startsWith("1:")) {
                         cl = new Client(text);
                         cl.execute();
                     }
-                    if (text.charAt(0) == '2' && text.charAt(1) == ':') {
+                    if (text.startsWith("2:")) {
                         getSupportActionBar().setTitle("Connected to " + serverIP + ":" + sendPort);
                         cl = new Client(text);
                         cl.execute();
                     }
-                    if (text.charAt(0) == '3' && text.charAt(1) == ':') {
+                    if (text.startsWith("3:")) {
                         text = text.substring(2);
                         String[] sArray = text.split("::sig::");
 
