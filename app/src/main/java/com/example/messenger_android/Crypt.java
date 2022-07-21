@@ -176,7 +176,7 @@ public class Crypt {
     /* GOST 34.12 */
 
     // init parameters and generate keys for GOST 34.12
-    // keysize = 256, rand initialization vector[16], CBC mode, PKCS7Padding
+    // keysize = 256, rand initialization vector[16], CBC mode, PKCS7 padding
     public void KUZgenerateKey() {
         try {
             SecretKeySpec sks;
@@ -230,7 +230,7 @@ public class Crypt {
 
     // try generate self signed certificate with GOST 34.10-2012 signature
     // key size = 512 (GOST3411WITHGOST3410-2012-512)
-    // OID:
+    // OID: 1.2.643.7.1.1.3.3
     public void generateGOST3410certificate(){
         try {
             Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
